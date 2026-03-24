@@ -48,7 +48,6 @@ orchestrator = { path = "./orchestrator" }
 soroban-sdk = { version = "21.0.0", features = ["testutils"] }
 
 [patch.crates-io]
-ed25519-dalek = { version = "=2.1.1" }
 
 [profile.release]
 opt-level = "z"
