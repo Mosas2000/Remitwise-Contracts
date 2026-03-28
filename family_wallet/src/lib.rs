@@ -66,8 +66,10 @@ pub enum TransactionData {
 pub struct FamilyMember {
     pub address: Address,
     pub role: FamilyRole,
-    /// Per-transaction cap in stroops. 0 = unlimited.
+    /// Legacy per-transaction cap in stroops. 0 = unlimited.
     pub spending_limit: i128,
+    /// Enhanced precision spending limit (optional)
+    pub precision_limit: Option<PrecisionSpendingLimit>,
     pub added_at: u64,
 }
 
@@ -148,6 +150,46 @@ const MAX_THRESHOLD: u32 = 100;
 pub struct BatchMemberItem {
     pub address: Address,
     pub role: FamilyRole,
+}
+
+/// Spending period configuration for rollover behavior
+#[contracttype]
+#[derive(Clone)]
+pub struct SpendingPeriod {
+    /// Period type: 0=Daily, 1=Weekly, 2=Monthly
+    pub period_type: u32,
+    /// Period start timestamp (aligned to period boundary)
+    pub period_start: u64,
+    /// Period duration in seconds
+    pub period_duration: u64,
+}
+
+/// Cumulative spending tracking for precision validation
+#[contracttype]
+#[derive(Clone)]
+pub struct SpendingTracker {
+    /// Current period spending amount
+    pub current_spent: i128,
+    /// Last transaction timestamp for precision validation
+    pub last_tx_timestamp: u64,
+    /// Transaction count in current period
+    pub tx_count: u32,
+    /// Period configuration
+    pub period: SpendingPeriod,
+}
+
+/// Enhanced spending limit with precision controls
+#[contracttype]
+#[derive(Clone)]
+pub struct PrecisionSpendingLimit {
+    /// Base spending limit per period
+    pub limit: i128,
+    /// Minimum precision unit (prevents dust attacks)
+    pub min_precision: i128,
+    /// Maximum single transaction amount
+    pub max_single_tx: i128,
+    /// Enable rollover validation
+    pub enable_rollover: bool,
 }
 
 #[contracttype]
@@ -333,6 +375,7 @@ impl FamilyWallet {
                 address: member_address.clone(),
                 role,
                 spending_limit,
+                precision_limit: None, // Default to legacy behavior
                 added_at: now,
             },
         );
@@ -727,6 +770,11 @@ impl FamilyWallet {
             panic!("Amount must be positive");
         }
 
+        // Enhanced precision and rollover validation
+        if let Err(error) = Self::validate_precision_spending(env.clone(), proposer.clone(), amount) {
+            panic_with_error!(&env, error);
+        }
+
         let config: MultiSigConfig = env
             .storage()
             .instance()
@@ -932,6 +980,7 @@ impl FamilyWallet {
                 address: member.clone(),
                 role,
                 spending_limit: 0,
+                precision_limit: None, // Default to legacy behavior
                 added_at: timestamp,
             },
         );
@@ -1379,6 +1428,7 @@ impl FamilyWallet {
                     address: item.address.clone(),
                     role: item.role,
                     spending_limit: 0,
+                    precision_limit: None, // Default to legacy behavior
                     added_at: timestamp,
                 },
             );
