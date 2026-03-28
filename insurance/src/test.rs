@@ -24,14 +24,14 @@ fn short_name(env: &Env) -> Result<String, ()> {
 }
 
 
-use ::testutils::{set_ledger_time, setup_test_env};
+use ::testutils::set_ledger_time;
 
 // Removed local set_time in favor of testutils::set_ledger_time
 
 #[test]
 fn test_create_policy_succeeds() {
-    setup_test_env!
-    client.initialize(&owner);(env, Insurance, InsuranceClient, client, owner);
+    setup_test_env!(env, Insurance, InsuranceClient, client, owner);
+    client.initialize(&owner);
 
     let name = String::from_str(&env, "Health Policy");
     let coverage_type = CoverageType::Health;
@@ -500,8 +500,8 @@ fn test_multiple_premium_payments() {
 
 #[test]
 fn test_create_premium_schedule_succeeds() {
-    setup_test_env!
-    client.initialize(&owner);(env, Insurance, InsuranceClient, client, owner);
+    setup_test_env!(env, Insurance, InsuranceClient, client, owner);
+    client.initialize(&owner);
     set_ledger_time(&env, 1, 1000);
 
     let policy_id = client.create_policy(

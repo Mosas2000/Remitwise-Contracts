@@ -17,7 +17,7 @@
 //!   DEFAULT_PAGE_LIMIT          = 20
 //!   MAX_BATCH_SIZE              = 50
 
-use insurance::{Insurance, InsuranceClient, InsuranceError};
+use insurance::{Insurance, InsuranceClient};
 use remitwise_common::CoverageType;
 use soroban_sdk::testutils::storage::Instance as _;
 use soroban_sdk::testutils::{Address as AddressTrait, EnvTestConfig, Ledger, LedgerInfo};
@@ -287,8 +287,7 @@ fn stress_ttl_re_bumped_by_pay_premium_after_ledger_advancement() {
     });
 
     // pay_premium must re-bump TTL
-    let paid = client.pay_premium(&owner, &policy_id);
-    assert!(paid, "pay_premium must succeed");
+    client.pay_premium(&owner, &policy_id);
 
     let ttl = env.as_contract(&contract_id, || env.storage().instance().get_ttl());
     assert!(
@@ -326,7 +325,7 @@ fn stress_batch_pay_premiums_at_max_batch_size() {
         ids_vec.push_back(id);
     }
 
-    let paid_count = client.batch_pay_premiums(&owner, &ids_vec).unwrap();
+    let paid_count = client.batch_pay_premiums(&owner, &ids_vec);
     assert_eq!(
         paid_count, BATCH_SIZE,
         "batch_pay_premiums must process all {} policies",
@@ -476,7 +475,7 @@ fn bench_batch_pay_premiums_50_policies() {
         ids_vec.push_back(id);
     }
 
-    let (cpu, mem, count) = measure(&env, || client.batch_pay_premiums(&owner, &ids_vec).unwrap());
+    let (cpu, mem, count) = measure(&env, || client.batch_pay_premiums(&owner, &ids_vec));
     assert_eq!(count, 50);
 
     println!(
@@ -514,7 +513,7 @@ fn stress_batch_pay_mixed_states() {
         ids_vec.push_back(id);
     }
 
-    let (cpu, mem, count) = measure(&env, || client.batch_pay_premiums(&owner, &ids_vec).unwrap());
+    let (cpu, mem, count) = measure(&env, || client.batch_pay_premiums(&owner, &ids_vec));
     assert_eq!(count, 25, "Exactly 25 policies should be paid");
 
     println!(
